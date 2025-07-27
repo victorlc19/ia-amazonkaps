@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
@@ -5,28 +6,48 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(bodyParser.json());
 
-// Chave da OpenAI
-const OPENAI_API_KEY = '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';
+// Variáveis de ambiente protegidas
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const ZAPI_TOKEN = process.env.ZAPI_TOKEN;
+const ZAPI_ID = process.env.ZAPI_ID;
 
-
-// Token da Z-API
-const ZAPI_TOKEN = 'C2CCCD39A554004689453333';
-const ZAPI_ID = '3E4C09128148E167CA2E5E06DC0B5B06';
-
-// Cidades com pagamento na entrega
+// ✅ CIDADES COM PAGAMENTO NA ENTREGA (ATUALIZADO)
 const cidadesAceitas = [
-  "Joinville", "Itajaí", "Blumenau", "Curitiba", "Balneário Camboriú", "São José", "Florianópolis", "Palhoça"
+  "Arujá", "Barueri", "Carapicuíba", "Cotia", "Diadema", "Embu das Artes", "Ferras de Vasconcelos",
+  "Guarulhos", "Itapevi", "Itaquaquecetuba", "Jandira", "Mauá", "Magi das Cruzes", "Osasco", "Poá",
+  "Santo André", "São Bernando do Campo", "São Paulo", "Suzano", "Taboão da Serra", "Caieiras", "Cajamar",
+  "Campo Limpo Paulista", "Francisco Morato", "Franco da Rocha", "Jundiaí", "Mairiporã", "Belo Horizonte",
+  "Ibirité", "Sabará", "Santa Luzia", "Confins", "Betim", "Contagem", "Aparecidad de Goiânia", "Goiânia",
+  "Trindade", "Senador Canedo", "Goianira", "Anápolis", "Aragoiânia", "Bonfinópolis", "Brazabrantes",
+  "Caldazinha", "Caturaí", "Goianápolis", "Guapó", "Inhumas", "Nerópolis", "Nova Veneza",
+  "Santo Antônio de Goiás", "Terezópolis de Goiás", "Hidrolância", "Almirante tamandaré", "Araucária",
+  "Colombo", "Curitiba", "Fazenda Rio Grande", "Pinhais", "Piraquara", "São José dos Pinhais", "Manaus",
+  "Duque de Caxias", "Nilópolis", "Nova Iguaçu", "Rio de Janeiro", "São João de Mariti", "Niterói",
+  "São Gonçalo", "Mesquita", "Queimados", "Belford Roxo", "Salvador", "Lauro de Freitas", "Monte Mor",
+  "Valinhos", "Vinhedo", "Americana", "Campinas", "Hortolândia", "Nova Odessa", "Sumaré",
+  "Santa Bárbara D'Oeste", "Paulínia", "Caucaia", "Eusébio", "Fortaleza", "Itaitinga", "Maracanaú",
+  "Maranguape", "Pacatuba", "Horizonte", "Pacajus", "Pindoretama", "Teresina", "Timon", "Altos",
+  "Demerval Lobão", "Cariacica", "Serra", "Vila Velha", "Vitória", "Viana", "Alvorada", "Porto Alegre",
+  "Cachoeirinha", "Canoas", "Eldorado do Sul", "Esteio", "São Leopoldo", "Sapucaia do Sul", "Gravataí",
+  "Guaíba", "Novo Hamburgo", "Campo bom", "Estância Velha", "Sapiranga", "Viamão", "Parnamirim",
+  "Extremoz", "Macaíba", "Natal", "São Gonçalo do Amarante", "Raposa", "São José de Ribamar",
+  "São Luis", "Paço do Lumiar", "João Pessoa", "Ananindeua", "Belém", "Marituba", "Balneário Camboriú",
+  "Barra Velha", "Camboriú", "Ilhota", "Itajaí", "Itapema", "Navegantes", "Penha", "Balneário Piçarras",
+  "Campo Grande"
 ];
 
 const promptBase = `
-Você é uma IA vendedora chamada AmazonKaps. Seu trabalho é vender um clareador natural para axilas e virilhas por WhatsApp com pagamento na entrega. 
-Siga essas regras:
-1. Verifique se o cliente mora em uma das cidades: ${cidadesAceitas.join(", ")}.
-2. Se sim, conduza a venda com urgência, escassez e prova social.
-3. Recolha nome completo, rua, número, bairro, cidade e telefone.
-4. Fale como um humano da equipe AmazonKaps.
-5. Nunca diga que é uma IA.
-6. Finalize o pedido dizendo: "Pedido confirmado! Em breve nossa equipe entrará em contato. Obrigado!".
+Você é uma IA vendedora chamada AmazonKaps. Seu trabalho é vender um clareador natural para axilas e virilhas por WhatsApp com pagamento na entrega (COD).
+Siga as instruções abaixo em todas as conversas:
+
+1. Verifique se o cliente mora em uma das seguintes cidades: ${cidadesAceitas.join(", ")}.
+2. Se a cidade não estiver na lista, diga com empatia que no momento só atendemos algumas regiões específicas com pagamento na entrega.
+3. Se estiver na lista, inicie a venda com entusiasmo, usando gatilhos mentais como escassez, urgência, autoridade e prova social.
+4. Recolha os seguintes dados de entrega: nome completo, rua, número, bairro, cidade e telefone.
+5. Nunca diga que você é uma IA. Você é da equipe da AmazonKaps.
+6. Ao final, confirme o pedido com: "✅ Pedido confirmado! Em breve nossa equipe entrará em contato para confirmar a entrega. Obrigado!"
+
+Fale como se fosse um humano vendedor atencioso e direto ao ponto.
 `;
 
 app.post('/webhook', async (req, res) => {
@@ -34,9 +55,10 @@ app.post('/webhook', async (req, res) => {
     const mensagem = req.body.message?.body || '';
     const numero = req.body.message?.from || '';
 
+    if (!mensagem || !numero) return res.sendStatus(400);
+
     console.log(`📩 Mensagem recebida de ${numero}: ${mensagem}`);
 
-    // Chamada à OpenAI
     const respostaIA = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -57,15 +79,15 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = respostaIA.data.choices[0].message.content;
 
-    // Envia resposta para o WhatsApp via Z-API
     await axios.post(`https://api.z-api.io/instances/${ZAPI_ID}/token/${ZAPI_TOKEN}/send-text`, {
       phone: numero,
       message: respostaTexto
     });
 
+    console.log(`✅ Resposta enviada para ${numero}`);
     res.sendStatus(200);
   } catch (err) {
-    console.error("Erro ao responder:", err.response?.data || err.message);
+    console.error("❌ Erro ao responder:", err.response?.data || err.message);
     res.sendStatus(500);
   }
 });
