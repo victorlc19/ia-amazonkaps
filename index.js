@@ -79,10 +79,15 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = respostaIA.data.choices[0].message.content;
 
-    await axios.post(`https://api.z-api.io/instances/${ZAPI_ID}/token/${ZAPI_TOKEN}/send-text`, {
-      phone: numero,
-      message: respostaTexto
-    });
+    await axios.post(`https://api.z-api.io/instances/${ZAPI_ID}/send-text`, {
+  phone: numero,
+  message: respostaTexto
+}, {
+  headers: {
+    'Client-Token': ZAPI_TOKEN
+  }
+});
+
 
     console.log(`✅ Resposta enviada para ${numero}`);
     res.sendStatus(200);
