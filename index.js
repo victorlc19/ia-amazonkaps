@@ -50,8 +50,9 @@ Fale como se fosse um humano vendedor atencioso e direto ao ponto.
 
 app.post('/webhook', async (req, res) => {
   try {
-    const mensagem = req.body?.message?.body || '';
-    const numero = req.body?.message?.from || '';
+    const mensagem = req.body?.body || '';
+const numero = req.body?.from?.split('@')[0] || '';
+
 
     if (!mensagem || !numero) return res.sendStatus(400);
 
