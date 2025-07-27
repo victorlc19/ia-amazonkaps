@@ -6,12 +6,11 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(bodyParser.json());
 
-// Variáveis de ambiente protegidas
+// Variáveis de ambiente
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const ZAPI_TOKEN = process.env.ZAPI_TOKEN;
 const ZAPI_ID = process.env.ZAPI_ID;
 
-// ✅ CIDADES COM PAGAMENTO NA ENTREGA (ATUALIZADO)
 const cidadesAceitas = [
   "Arujá", "Barueri", "Carapicuíba", "Cotia", "Diadema", "Embu das Artes", "Ferras de Vasconcelos",
   "Guarulhos", "Itapevi", "Itaquaquecetuba", "Jandira", "Mauá", "Magi das Cruzes", "Osasco", "Poá",
@@ -79,7 +78,6 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = respostaIA.data.choices[0].message.content;
 
-    // ✅ Correção: usando o cabeçalho correto da Z-API
     await axios.post(
       `https://api.z-api.io/instances/${ZAPI_ID}/send-text`,
       {
@@ -88,7 +86,7 @@ app.post('/webhook', async (req, res) => {
       },
       {
         headers: {
-          'Authorization': ZAPI_TOKEN
+          'Client-Token': ZAPI_TOKEN
         }
       }
     );
