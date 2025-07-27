@@ -5,70 +5,72 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(bodyParser.json());
 
-// 🔐 SUA CHAVE DA OPENAI
+// Chave da OpenAI
 const OPENAI_API_KEY = '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';
 
-// Lista das cidades que aceita pagamento na entrega
+// Token da Z-API
+const ZAPI_TOKEN = 'C2CCCD39A554004689453333';
+const ZAPI_ID = '3E4C09128148E167CA2E5E06DC0B5B06';
+
+// Cidades com pagamento na entrega
 const cidadesAceitas = [
   "Joinville", "Itajaí", "Blumenau", "Curitiba", "Balneário Camboriú", "São José", "Florianópolis", "Palhoça"
 ];
 
 const promptBase = `
-Você é uma IA vendedora chamada AmazonKaps. Seu trabalho é vender um clareador de axilas e virilhas por WhatsApp com pagamento na entrega. 
+Você é uma IA vendedora chamada AmazonKaps. Seu trabalho é vender um clareador natural para axilas e virilhas por WhatsApp com pagamento na entrega. 
 Siga essas regras:
-1. Valide se o cliente mora em uma das cidades: ${cidadesAceitas.join(", ")}.
-2. Use gatilhos mentais como escassez, prova social e urgência.
-3. Recolha nome completo, telefone, rua, número, bairro, cidade.
-4. Seja envolvente e responda como humano vendedor.
-5. Nunca diga que é IA. Diga que é da equipe da AmazonKaps.
-6. Encerre o pedido com: "Pedido confirmado! Em breve nossa equipe entrará em contato para confirmar a entrega. Obrigado!"
-
-A conversa até agora:
+1. Verifique se o cliente mora em uma das cidades: ${cidadesAceitas.join(", ")}.
+2. Se sim, conduza a venda com urgência, escassez e prova social.
+3. Recolha nome completo, rua, número, bairro, cidade e telefone.
+4. Fale como um humano da equipe AmazonKaps.
+5. Nunca diga que é uma IA.
+6. Finalize o pedido dizendo: "Pedido confirmado! Em breve nossa equipe entrará em contato. Obrigado!".
 `;
 
 app.post('/webhook', async (req, res) => {
-  const mensagem = req.body.message.text;
-  const numero = req.body.message.from;
-
-  console.log('Mensagem recebida:', mensagem);
-
   try {
-    const respostaIA = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: promptBase },
-        { role: "user", content: mensagem }
-      ],
-      temperature: 0.7
-    }, {
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
+    const mensagem = req.body.message?.body || '';
+    const numero = req.body.message?.from || '';
+
+    console.log(`📩 Mensagem recebida de ${numero}: ${mensagem}`);
+
+    // Chamada à OpenAI
+    const respostaIA = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: promptBase },
+          { role: "user", content: mensagem }
+        ],
+        temperature: 0.7
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
 
     const respostaTexto = respostaIA.data.choices[0].message.content;
 
-    // Enviar resposta para o número via WATI
-    await axios.post('https://app.wati.io/api/v1/sendSessionMessage', {
+    // Envia resposta para o WhatsApp via Z-API
+    await axios.post(`https://api.z-api.io/instances/${ZAPI_ID}/token/${ZAPI_TOKEN}/send-text`, {
       phone: numero,
-      messageText: respostaTexto
-    }, {
-      headers: {
-        'Authorization': 'Bearer SUA_WATI_API_KEY',
-        'Content-Type': 'application/json'
-      }
+      message: respostaTexto
     });
 
     res.sendStatus(200);
   } catch (err) {
-    console.error('Erro ao processar mensagem:', err.response?.data || err.message);
+    console.error("Erro ao responder:", err.response?.data || err.message);
     res.sendStatus(500);
   }
 });
 
 app.get('/', (req, res) => {
-  res.send('Servidor da IA AmazonKaps rodando ✅');
+  res.send('✅ IA AmazonKaps com Z-API está rodando!');
 });
 
 const PORT = process.env.PORT || 3000;
