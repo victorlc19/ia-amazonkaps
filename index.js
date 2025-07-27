@@ -6,10 +6,9 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(bodyParser.json());
 
-// Variáveis de ambiente
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const ZAPI_TOKEN = process.env.ZAPI_TOKEN;
-const ZAPI_ID = process.env.ZAPI_ID;
+const ULTRAMSG_INSTANCE = 'instance135429';
+const ULTRAMSG_TOKEN = 'upfkz3u8fm3m01ud';
 
 const cidadesAceitas = [
   "Arujá", "Barueri", "Carapicuíba", "Cotia", "Diadema", "Embu das Artes", "Ferras de Vasconcelos",
@@ -51,8 +50,8 @@ Fale como se fosse um humano vendedor atencioso e direto ao ponto.
 
 app.post('/webhook', async (req, res) => {
   try {
-    const mensagem = req.body.message?.body || '';
-    const numero = req.body.message?.from || '';
+    const mensagem = req.body?.body || '';
+    const numero = req.body?.from || '';
 
     if (!mensagem || !numero) return res.sendStatus(400);
 
@@ -78,18 +77,11 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = respostaIA.data.choices[0].message.content;
 
-    await axios.post(
-      `https://api.z-api.io/instances/${ZAPI_ID}/send-text`,
-      {
-        phone: numero,
-        message: respostaTexto
-      },
-      {
-        headers: {
-          'Client-Token': ZAPI_TOKEN
-        }
-      }
-    );
+    await axios.post(`https://api.ultramsg.com/${ULTRAMSG_INSTANCE}/messages/chat`, {
+      token: ULTRAMSG_TOKEN,
+      to: numero,
+      body: respostaTexto
+    });
 
     console.log(`✅ Resposta enviada para ${numero}`);
     res.sendStatus(200);
@@ -100,7 +92,7 @@ app.post('/webhook', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('✅ IA AmazonKaps com Z-API está rodando!');
+  res.send('✅ IA AmazonKaps com UltraMsg está rodando!');
 });
 
 const PORT = process.env.PORT || 3000;
