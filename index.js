@@ -96,7 +96,8 @@ app.get('/', (req, res) => {
   res.send('✅ IA AmazonKaps com Z-API está rodando!');
 });
 
-const PORT = 10000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
