@@ -79,15 +79,19 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = respostaIA.data.choices[0].message.content;
 
-    await axios.post(`https://api.z-api.io/instances/${ZAPI_ID}/send-text`, {
-  phone: numero,
-  message: respostaTexto
-}, {
-  headers: {
-    'Client-Token': ZAPI_TOKEN
-  }
-});
-
+    // ✅ Correção: usando o cabeçalho correto da Z-API
+    await axios.post(
+      `https://api.z-api.io/instances/${ZAPI_ID}/send-text`,
+      {
+        phone: numero,
+        message: respostaTexto
+      },
+      {
+        headers: {
+          'Authorization': ZAPI_TOKEN
+        }
+      }
+    );
 
     console.log(`✅ Resposta enviada para ${numero}`);
     res.sendStatus(200);
@@ -105,4 +109,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
-
