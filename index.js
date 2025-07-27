@@ -1,61 +1,45 @@
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');
+
 const app = express();
-require('dotenv').config();
-
-const ZAPI_TOKEN = process.env.ZAPI_TOKEN;
-const ZAPI_ID = process.env.ZAPI_ID;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
 app.use(bodyParser.json());
 
-const cidadesPermitidas = [
-  'Arujá', 'Barueri', 'Carapicuíba', 'Cotia', 'Diadema', 'Embu das Artes', 'Ferraz de Vasconcelos', 'Guarulhos', 'Itapevi', 'Itaquaquecetuba',
-  'Jandira', 'Mauá', 'Mogi das Cruzes', 'Osasco', 'Poá', 'Santo André', 'São Bernardo do Campo', 'São Paulo', 'Suzano', 'Taboão da Serra',
-  'Caieiras', 'Cajamar', 'Campo Limpo Paulista', 'Francisco Morato', 'Franco da Rocha', 'Jundiaí', 'Mairiporã', 'Belo Horizonte', 'Ibirité',
-  'Sabará', 'Santa Luzia', 'Confins', 'Betim', 'Contagem', 'Aparecida de Goiânia', 'Goiânia', 'Trindade', 'Senador Canedo', 'Goianira',
-  'Anápolis', 'Aragoiânia', 'Bonfinópolis', 'Brazabrantes', 'Caldazinha', 'Caturaí', 'Goianápolis', 'Guapó', 'Inhumas', 'Nerópolis',
-  'Nova Veneza', 'Santo Antônio de Goiás', 'Terezópolis de Goiás', 'Hidrolândia', 'Almirante Tamandaré', 'Araucária', 'Colombo',
-  'Curitiba', 'Fazenda Rio Grande', 'Pinhais', 'Piraquara', 'São José dos Pinhais', 'Manaus', 'Duque de Caxias', 'Nilópolis', 'Nova Iguaçu',
-  'Rio de Janeiro', 'São João de Meriti', 'Niterói', 'São Gonçalo', 'Mesquita', 'Queimados', 'Belford Roxo', 'Salvador', 'Lauro de Freitas',
-  'Monte Mor', 'Valinhos', 'Vinhedo', 'Americana', 'Campinas', 'Hortolândia', 'Nova Odessa', 'Sumaré', "Santa Bárbara D'Oeste", 'Paulínia',
-  'Caucaia', 'Eusébio', 'Fortaleza', 'Itaitinga', 'Maracanaú', 'Maranguape', 'Pacatuba', 'Horizonte', 'Pacajus', 'Pindoretama', 'Teresina',
-  'Timon', 'Altos', 'Demerval Lobão', 'Cariacica', 'Serra', 'Vila Velha', 'Vitória', 'Viana', 'Alvorada', 'Porto Alegre', 'Cachoeirinha',
-  'Canoas', 'Eldorado do Sul', 'Esteio', 'São Leopoldo', 'Sapucaia do Sul', 'Gravataí', 'Guaíba', 'Novo Hamburgo', 'Campo Bom',
-  'Estância Velha', 'Sapiranga', 'Viamão', 'Parnamirim', 'Extremoz', 'Macaíba', 'Natal', 'São Gonçalo do Amarante', 'Raposa',
-  'São José de Ribamar', 'São Luis', 'Paço do Lumiar', 'João Pessoa', 'Ananindeua', 'Belém', 'Marituba', 'Balneário Camboriú',
-  'Barra Velha', 'Camboriú', 'Ilhota', 'Itajaí', 'Itapema', 'Navegantes', 'Penha', 'Balneário Piçarras', 'Campo Grande'
+// 🔐 SUA CHAVE DA OPENAI
+const OPENAI_API_KEY = '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';
+
+// Lista das cidades que aceita pagamento na entrega
+const cidadesAceitas = [
+  "Joinville", "Itajaí", "Blumenau", "Curitiba", "Balneário Camboriú", "São José", "Florianópolis", "Palhoça"
 ];
 
-function normalizar(txt) {
-  return txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
+const promptBase = `
+Você é uma IA vendedora chamada AmazonKaps. Seu trabalho é vender um clareador de axilas e virilhas por WhatsApp com pagamento na entrega. 
+Siga essas regras:
+1. Valide se o cliente mora em uma das cidades: ${cidadesAceitas.join(", ")}.
+2. Use gatilhos mentais como escassez, prova social e urgência.
+3. Recolha nome completo, telefone, rua, número, bairro, cidade.
+4. Seja envolvente e responda como humano vendedor.
+5. Nunca diga que é IA. Diga que é da equipe da AmazonKaps.
+6. Encerre o pedido com: "Pedido confirmado! Em breve nossa equipe entrará em contato para confirmar a entrega. Obrigado!"
+
+A conversa até agora:
+`;
 
 app.post('/webhook', async (req, res) => {
-  console.log('Recebido:', JSON.stringify(req.body)); // Log para Render
-  res.sendStatus(200);
+  const mensagem = req.body.message.text;
+  const numero = req.body.message.from;
 
-  const { message, sender } = req.body;
-  if (!message || !sender) return;
-
-  const texto = message.toLowerCase();
-
-  const cidadeEncontrada = cidadesPermitidas.find(cidade =>
-    normalizar(texto).includes(normalizar(cidade))
-  );
-
-  const prompt = cidadeEncontrada
-    ? `Você é um vendedor persuasivo. O cliente quer comprar o produto AmazonKaps com pagamento na entrega. Ele é de ${cidadeEncontrada}. Conduza a conversa com técnicas de gatilhos mentais e coleta de dados para envio (nome, endereço completo e ponto de referência). Seja direto, rápido e vendedor.`
-    : `Você é um vendedor persuasivo. O cliente quer comprar o produto AmazonKaps. Conduza a conversa com técnicas de gatilhos mentais e colete o nome da cidade para verificar se é atendida com pagamento na entrega. Seja direto e vendedor.`
+  console.log('Mensagem recebida:', mensagem);
 
   try {
-    const resposta = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-3.5-turbo',
+    const respostaIA = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: "gpt-4o",
       messages: [
-        { role: 'system', content: prompt },
-        { role: 'user', content: texto }
-      ]
+        { role: "system", content: promptBase },
+        { role: "user", content: mensagem }
+      ],
+      temperature: 0.7
     }, {
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -63,24 +47,31 @@ app.post('/webhook', async (req, res) => {
       }
     });
 
-    const respostaIA = resposta.data.choices[0].message.content;
-    await enviarMensagem(sender, respostaIA);
-  } catch (e) {
-    console.error('Erro na IA:', e.response?.data || e);
-    await enviarMensagem(sender, 'Ocorreu um erro ao processar sua mensagem. Tente novamente.');
+    const respostaTexto = respostaIA.data.choices[0].message.content;
+
+    // Enviar resposta para o número via WATI
+    await axios.post('https://app.wati.io/api/v1/sendSessionMessage', {
+      phone: numero,
+      messageText: respostaTexto
+    }, {
+      headers: {
+        'Authorization': 'Bearer SUA_WATI_API_KEY',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Erro ao processar mensagem:', err.response?.data || err.message);
+    res.sendStatus(500);
   }
 });
 
-async function enviarMensagem(numero, texto) {
-  try {
-    await axios.post(`https://api.z-api.io/instances/${ZAPI_ID}/token/${ZAPI_TOKEN}/send-text`, {
-      phone: numero,
-      message: texto
-    });
-  } catch (err) {
-    console.error('Erro ao enviar mensagem:', err.response?.data || err);
-  }
-}
+app.get('/', (req, res) => {
+  res.send('Servidor da IA AmazonKaps rodando ✅');
+});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
