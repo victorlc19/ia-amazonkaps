@@ -6,7 +6,8 @@ const app = express();
 app.use(bodyParser.json());
 
 // Chave da OpenAI
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = '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';
+
 
 // Token da Z-API
 const ZAPI_TOKEN = 'C2CCCD39A554004689453333';
